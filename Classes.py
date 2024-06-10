@@ -137,7 +137,57 @@ class enemy(pygame.sprite.Sprite):
         self.movement_cooldown = random.randint(1,2)
         self.speed = 4
         self.moving = False
+
+        self.collision = [False,False,False,False]   # [TL, TR, BL, BR]  will be updated to track where collisions are happening on the sprite, so it can adjust accordingly
     
+    def get_collisions(self, item):
+        if self.rect.colliderect(item):
+            if item.rect.collidepoint(self.rect.topleft):
+                self.collision[0] = True
+            if item.rect.collidepoint(self.rect.topright):
+                self.collision[1] = True
+            if item.rect.collidepoint(self.rect.bottomleft):
+                self.collision[2] = True
+            if item.rect.collidepoint(self.rect.bottomright):
+                self.collision[3] = True
+    
+    def shunt(self):  # moves the enemy towards an open direction
+
+            # if item is true, collision detected in that direction
+
+        if (not (self.collision[0] and self.collision[1])) and self.collision[2] and self.collision[3]:
+            self.rect.centery -= 2
+            print("shunted upward") # Top
+        elif self.collision[0] and self.collision[1] and (not (self.collision[2] and self.collision[3])):
+            self.rect.centery += 2
+            print("shunted downward") # Bottom
+        elif (not self.collision[0]) and self.collision[1] and (not self.collision[2]) and self.collision[3]:
+            self.rect.centerx -= 2
+            print("shunted left") # Left
+        elif self.collision[0] and (not self.collision[1]) and self.collision[2] and (not self.collision[3]):
+            self.rect.centerx += 2
+            print("shunted right") # Right
+
+        elif (not self.collision[0]) and self.collision[1] and self.collision[2] and self.collision[3]:
+            self.rect.centerx -= 2
+            self.rect.centery -= 2
+            print("shunted top left") # top left
+        elif self.collision[0] and (not self.collision[1]) and self.collision[2] and self.collision[3]:
+            self.rect.centerx += 2
+            self.rect.centery -= 2
+            print("shunted top right") # top right
+        elif self.collision[0] and self.collision[1] and (not self.collision[2]) and self.collision[3]:
+            self.rect.centerx -= 2
+            self.rect.centery += 2
+            print("shunted bottom left") # bottom left
+        elif self.collision[0] and self.collision[1] and self.collision[2] and (not self.collision[3]):
+            self.rect.centerx += 2
+            self.rect.centery += 2
+            print("shunted bottom right") # bottom right
+        else:
+            pass # print(self.collision, "< No collisions detected")
+        self.collision = [False,False,False,False]  # resets the list for the next use
+
     def LoS(self, target, obstructions_list,):   # Returns True if target is in range, and unshielded by items in arg[2], meaning Line of sight can be made.
         if dist(self.rect.center, target) < self.range:  # filters 
             for item in obstructions_list:
@@ -147,8 +197,6 @@ class enemy(pygame.sprite.Sprite):
             return True
 
     def attack(self, target, obstructions_list, bullets_group):
-        #for item in obstructions_list:
-        #    pygame.draw.rect(disp, (0,0,0), item.rect, 1)
         self.ready = ((time.time() - self.timer) > self.cooldown)
         pressed_keys = pygame.key.get_pressed()
         self.target_pos = target.rect.centerx + (self.scrn[0]//2), target.rect.centery + (self.scrn[1]//2)
@@ -165,7 +213,6 @@ class enemy(pygame.sprite.Sprite):
             self.YMovement = random.randrange(-250,250)  # selects a random direction to move in + random distance
             self.movement_cooldown = random.randint(1,2) # set the delay to 1 or 2 seconds
             self.moving = True  # commence the movement
-            #print("line 157 - moving set to True, X&YMovement set")
         self.DX = 0
         self.DY = 0
         if self.debug:
@@ -184,19 +231,17 @@ class enemy(pygame.sprite.Sprite):
             self.ghost_rectY = pygame.Rect(self.rect.left          , self.rect.top + self.DY, self.rect.width, self.rect.height)
             if self.rect.collidelist(blocks) != -1:
                 for item in blocks:
+                    self.get_collisions(item)
                     if self.ghost_rectX.colliderect(item):  # check if X movement is valid
-                        #print(f"{self.ghost_rectX} is X movement, {self.ghost_rectY} is Y movement.\n{self.XMovement} is target movement, {self.YMovement} is target movement.\n{self.DX} = DX, {self.DY} = DY\n\n")
                         if self.DX != 0:
-                            self.DX = 0 #self.DX * -1
+                            self.DX = 0
                             self.XMovement = self.XMovement * -1
-                            #print(f"X-collision detected: values updated to {self.DX}, {self.XMovement}")
                         if self.debug:
                             self.image.fill((255,0,0))  
                     if self.ghost_rectY.colliderect(item):  # check if Y movement is valid
                         if self.DY != 0:
-                            self.DY = 0# self.DY * -1
+                            self.DY = 0
                             self.YMovement = self.YMovement * -1
-                            #print(f"Y-collision detected: values updated to {self.DY}, {self.YMovement}")
                         if self.debug:
                             self.image.fill((255,0,0))
             self.XMovement -= self.DX
@@ -211,6 +256,7 @@ class enemy(pygame.sprite.Sprite):
         if self.debug:
             print(self.DX, self.DY, "self.DX self.DY")
             print(self.XMovement, self.YMovement, "self.XMovement self.YMovement")
+        self.shunt()
         self.rect.centerx += self.DX  # update
         self.rect.centery += self.DY  # position
     
