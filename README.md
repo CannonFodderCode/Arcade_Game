@@ -7,10 +7,10 @@
 
 <h3>Main program</h3>
 
-<p>The main program is not complete, but currently draws a map image and a collision map from data in the MapBuilding file. The enemies can move and shoot at the player, provided there is a direct line of sight, and the player is within range. The screen follows  the player as they move around the map, and drifts towards the players cursor to allow them to look further in whatever direction they are aiming in.</p>
+<p>The main program is not complete, but currently draws a map image and a collision map from data in the MapBuilding file. The enemies can move and shoot at the player, provided there is a direct line of sight, and the player is within range. The screen follows the player as they move around the map, and drifts towards the players cursor to allow them to look further in whatever direction they are aiming in.</p>
 <h3>Next steps:</h3>
 <ul>
-  <li>Fix enemy collision bug that allows them to get stuck in walls (check 4 corners, if 3 are obstructed, move to the 4th)</li>
+  <li>Set player spawn point in map data - extract when building level</li>
   <li>Add GUI elements that display player HP, XP, and spaces for ammo and equiped weapons</li>
   <li>Add a test weapon for the player</li>
   <li>Make Pause menu, and main menu screens</li>
