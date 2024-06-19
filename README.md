@@ -16,6 +16,6 @@
   <li>Add a temporary screen when all enemies are killed, and load in a random new map</li>
   <li>Add different appearances for bullets that get set by __init__ args</li>
 </ul>
-<p>A full list of intended additions can be found at the top of "main.py"</p>
+<h4>A full list of intended additions can be found at the top of "main.py"</h4>
   </body>
 </HTML>
