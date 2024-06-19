@@ -221,17 +221,17 @@ class enemy(pygame.sprite.Sprite):
                 print("DEBUG PLACEHOLDER - INTERNAL CORNER", self.MaxHP)
             
             # getting unstuck from a single corner
-            elif not ((not self.collision[0]) and self.collision[1] and self.collision[2] and self.collision[3]):
+            elif self.collision[0] and not (self.collision[1] or self.collision[2] or self.collision[3]):
                 self.rect.centerx += 2
                 self.rect.centery += 2
                 print("DEBUG PLACEHOLDER - EXTERNAL CORNER", self.MaxHP)
-            elif not (self.collision[0] and (not self.collision[1]) and self.collision[2] and self.collision[3]):
+            elif self.collision[1] and not (self.collision[0] or self.collision[2] or self.collision[3]):
                 self.rect.centerx -= 2
                 self.rect.centery += 2
-            elif not (self.collision[0] and self.collision[1] and (not self.collision[2]) and self.collision[3]):
+            elif self.collision[2] and not (self.collision[0] or self.collision[1] or self.collision[3]):
                 self.rect.centerx += 2
                 self.rect.centery -= 2
-            elif not (self.collision[0] and self.collision[1] and self.collision[2] and (not self.collision[3])):
+            elif self.collision[3] and not (self.collision[0] or self.collision[1] or self.collision[2]):
                 self.rect.centerx -= 2
                 self.rect.centery -= 2
 

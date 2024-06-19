@@ -61,15 +61,20 @@ def create_data(width, height):  # creates an array of 1s in the format required
                 dataChanged = True
     return data
 
+with open("SavedMapData.json","r") as file:
+    map_list = json.load(file)
+
 load = input("input 'Yes' to load data: ")
 if load.lower() == "yes":
-    with open("SavedMapData.json","r") as file:    # load the saved list data into the "data" variable
-        data = json.load(file)
+    working_index = 0
+    data = map_list[working_index]
 else:
     print("Creating new map data:")
     data = create_data(int(input("set map width: ")),int(input("set map height: ")))   # ask the user to specify dimensions for the new map
+    working_index = len(map_list)
+    map_list.append(data)
 
-surface = pygame.Surface((2560,1440))  # a blank surface that takes the blockmap to display
+working_surface = pygame.Surface((2560,1440))  # a blank surface that takes the blockmap to display
 
 if fullscreenBOOL:        # Check if the user specified Fullscreen
     disp = pygame.display.set_mode((scr_wi, scr_hi), pygame.FULLSCREEN)
@@ -109,11 +114,8 @@ def update_square(X_item, Y_item, surface, blueprint, wallcolour, floorcolour, s
 
 validKeys = [0,1,2,   9]  # 0 = empty square, 1 = wall block, 2 = enemy spawn, 9 = player spawn
 
-Paint_Map(surface, data, (100,100,20), (0,0,0), scale)  # create the initial map from the data input
+Paint_Map(working_surface, data, (100,100,20), (0,0,0), scale)  # create the initial map from the data input
 screen = 0  # 0 = paint map   1 = view maps in data
-
-with open("SavedMapData.json","r") as file:
-    map_list = json.load(file)
 
 while True:
     mouse = pygame.mouse.get_pos()
@@ -123,11 +125,11 @@ while True:
         if pressed_keys[K_MINUS] and not (scale == 1):  # User presses either - or + to change the zoom, and the surface gets re-built at the new scale
             scale -= 1
             scale_updated = True
-            Paint_Map(surface, data, (100,100,20), (0,0,0), scale)  # remakes the layout when the scale has been changed
+            Paint_Map(working_surface, data, (100,100,20), (0,0,0), scale)  # remakes the layout when the scale has been changed
         elif pressed_keys[K_EQUALS]:
             scale += 1
             scale_updated = True
-            Paint_Map(surface, data, (100,100,20), (0,0,0), scale)
+            Paint_Map(working_surface, data, (100,100,20), (0,0,0), scale)
         for num in range(10):
             key = getattr(pygame, f"K_{num}")    # updates the currently drawn tile to the selected number
             if pressed_keys[key]:
@@ -149,14 +151,14 @@ while True:
                         for item in row:
                             if item == 9:
                                 data[rowCount][itemCount] = 0  # update the matrix
-                                update_square(itemCount, rowCount, surface, data, (100,100,20), (0,0,0), scale)  # re-draw ONLY the changed square
+                                update_square(itemCount, rowCount, working_surface, data, (100,100,20), (0,0,0), scale)  # re-draw ONLY the changed square
                             itemCount += 1
                         rowCount += 1
 
                 data[Y_value][X_value] = draw
-                update_square(X_value, Y_value, surface, data, (100,100,20), (0,0,0), scale)
+                update_square(X_value, Y_value, working_surface, data, (100,100,20), (0,0,0), scale)
 
-        disp.blit(surface, (0,0))
+        disp.blit(working_surface, (0,0))
         if pressed_keys[K_SPACE]:  # show the output button
             disp.blit(output_button, output_rect)
             get_scale()
@@ -168,8 +170,8 @@ while True:
 
                 with open("SavedMapData.json","w") as file:  # writes data list to file
                     try:
-                        map_list.append()
-                        json.dump(output, file)
+                        map_list[working_index] = output
+                        json.dump(map_list, file)
                         print("No exceptions raised")
                         file.flush()
                         file.close()
@@ -192,23 +194,42 @@ while True:
             map_surfaces = []
             coordinates = (50,50)
             map_scale = 5
+            counter = 0
             for item in map_list:
                 width = len(item[0] * map_scale)
                 height = len(item * map_scale)
-                map_surface = (pygame.Surface((width, height), pygame.SRCALPHA), (0,0))
-                map_surface = (map_surface[0], map_surface[0].get_rect(topleft = coordinates))
+                surface = pygame.Surface((width, height), pygame.SRCALPHA)
+                map_surface = (surface, surface.get_rect(topleft = coordinates), counter)
                 
                 Paint_Map(map_surface[0], item, (100,100,20), (0,0,0), map_scale)
                 map_surfaces.append(map_surface)
                 coordinates = (coordinates[0] + 10 + (width), coordinates[1])
+                counter += 1
                 
             update_maps = False
         for item in map_surfaces:
             disp.blit(item[0], item[1])
+            if item[1].collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0]:
+                screen = 0
+                working_index = item[2]
+                data = map_list[working_index]
+                Paint_Map(working_surface, data, (100,100,20), (0,0,0), scale)
                 
 
     pygame.display.flip()
     for event in pygame.event.get():   # Quit detection
         if event.type == QUIT:
+            
+            # Saves all maps to json file on quit
+            final_write = []
+            for item in map_list:
+                final_map = MapBuilding.trim_data(MapBuilding.pad_data(item))
+                print("Saving map")
+                final_write.append(final_map)
+            print()
+            with open("SavedMapData.json","w") as file:
+                json.dump(final_write, file)
+                print("All maps written to file: SavedMapData.json \n")
+
             pygame.quit()
             sys.exit()

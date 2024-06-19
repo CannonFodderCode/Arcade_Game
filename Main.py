@@ -4,10 +4,12 @@ A Stupidly ambitious top-down arcade shooter with the following features:
     Enemies that shoot back (coming in many varieties)
     customisable weapons (remix noita style wand-building)
     XP - level ups (Nuclear throne inspired)
-    level editor in sepperate program that allows drawing maps like in paint, then outputs data to a JSON file to construct the environment from
+    level editor in sepperate program that allows drawing in a GUI, then outputs data to a JSON file to construct the environment from
 '''
 #TO-DO:
 '''
+Allow MapMaker to create and delete maps in the GUI - eliminate terminal usage
+
 decide on a GUI colour scheme & style...
 obsticles that block bullets, but have HP and can be destroyed! (can be drawn in map editor)
 add function in mapMaker to view all maps stored in json in graphical form, and delete single maps. + add maps to json instead of overwrite

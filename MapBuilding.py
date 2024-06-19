@@ -100,7 +100,7 @@ worlddata = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
 with open("SavedMapData.json", "r") as file:
     mapConfigurations = json.load(file)
 
-worlddata = mapConfigurations[1]
+worlddata = random.choice(mapConfigurations)
 
 def SetUpMap(blueprint, wallcolour, floorcolour, scale, screen_size, enemy_class_list, enemy_list):
     surface = pygame.Surface(((len(blueprint[0])*scale), len(blueprint)*scale))
