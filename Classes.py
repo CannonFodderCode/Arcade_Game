@@ -7,16 +7,19 @@ def angle_finder(start, end):   # returns angles in radians
     return(angle % (2*pi))
 
 class player(pygame.sprite.Sprite):
-    def __init__(self, map_offset):
+    def __init__(self):
         super().__init__()
         self.image = pygame.Surface((60,60), SRCALPHA)
         self.image.fill((0,0,0,0))
         pygame.draw.circle(self.image,(0,255,100), (30,30), 30)
-        self.rect = self.image.get_rect(topleft = (-map_offset[0], -map_offset[1]))
         self.speed = 6
         self.maxHP = 10
         self.HP = self.maxHP
         self.rect_on_screen = pygame.Rect(500,500, 60,60)
+        self.BonusLives = 0
+    
+    def relocate(self, map_offset):
+        self.rect = self.image.get_rect(topleft = (-map_offset[0], -map_offset[1]))
     
     def draw(self, disp, location):
         self.location = location
@@ -83,6 +86,9 @@ class weapon(pygame.sprite.Sprite):
         self.FR = 2  # in shots per second
         self.cooldown = 1/self.FR  # wait time after each shot
         self.timer = 0
+        self.type = type
+        self.spread = 0
+        self.projectiles = 1
 
     def draw(self, disp, mouse_pos):
         if mouse_pos[0] <= self.owner.location[0]:
@@ -95,9 +101,10 @@ class weapon(pygame.sprite.Sprite):
     def shoot(self, projectile_group, map_pos, target):
         self.ready = ((time.time() - self.timer) > self.cooldown)
         if self.ready:
-            bullet = Bullet((self.rect.center[0] - map_pos[0], self.rect.center[1] - map_pos[1]), (target[0] - map_pos[0], target[1] - map_pos[1]), "PLAYER", self.speed, self.damage)
-            projectile_group.add(bullet)
-            self.timer = time.time()
+            for count in range(self.projectiles):
+                bullet = Bullet((self.rect.center[0] - map_pos[0], self.rect.center[1] - map_pos[1]), (target[0] - map_pos[0], target[1] - map_pos[1]), "PLAYER", self.speed, self.damage)#, self.spread)
+                projectile_group.add(bullet)
+                self.timer = time.time()
 
 class crossheir(pygame.sprite.Sprite):
     def __init__(self):
@@ -127,7 +134,7 @@ class Bullet(pygame.sprite.Sprite):
         self.target_pos = target
         pygame.draw.circle(self.image, (255,255,0),(self.radius, self.radius), self.radius)             # FIX THE TARGET FOR PLAYER-FIRED SHOTS, ooh, maybe its because its not accounting for map drift...?
         self.rect = self.image.get_rect(center = start_pos)
-        self.angle = angle_finder(self.rect.center, target)
+        self.angle = angle_finder(self.rect.center, target)# + radians(random.randrange(-spread, spread, 1) / 2)
         self.dx = self.speed * cos(self.angle)
         self.dy = self.speed * sin(self.angle)
         self.X_position = self.rect.centerx
@@ -322,6 +329,7 @@ class enemy(pygame.sprite.Sprite):
                 bullet.kill()
                 if self.HP <= 0:
                     self.kill()
+                    break # required to stop the loop removing other bullets after sprite death
     
     def save_map_pos(self, map_position):
         self.map_position = map_position
@@ -484,6 +492,7 @@ class melee(pygame.sprite.Sprite):
         
         #Bullet damage
         self.attack_rect.topleft = self.draw_location
+        self.rect_on_screen = self.attack_rect
         for bullet in projectiles:
             if self.attack_rect.collidepoint(bullet.draw_location) and bullet.allegiance == "PLAYER":
                 self.HP -= bullet.damage
@@ -491,6 +500,7 @@ class melee(pygame.sprite.Sprite):
                 bullet.kill()
                 if self.HP <= 0:
                     self.kill()
+                    break
 
     def attack(self, target, Null, Null2):
         self.ready = ((time.time() - self.timer) > self.attack_rate)

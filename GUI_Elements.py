@@ -48,7 +48,7 @@ def EnemyCount_Tab(display, enemy_list, updated, scr_wi):
     display.blit(EnemyCount_Surface, (scr_wi-(EnemyCount_Surface.get_width()),0))
 
 
-# image and rect setup for
+# Pause Buttons
 Quit_Image = pygame.Surface((200, 100))
 Quit_Image.fill((255, 0, 0))
 rendered_text = HP_Font.render('Quit', True, (255,255,255))
@@ -60,6 +60,45 @@ def Quit_Button(location, end_surface):
     Quit_Button_Rect.topleft = (location)
     end_surface.blit(Quit_Image, Quit_Button_Rect)
     return Quit_Button_Rect
+
+
+Refresh_Image = pygame.Surface((200, 100))
+Refresh_Image.fill((255, 255, 0))
+rendered_text = HP_Font.render('Refresh', True, (255,0,0))
+text_rect = rendered_text.get_rect(center = (100, 50))
+Refresh_Image.blit(rendered_text, text_rect)
+Refresh_Button_Rect = Refresh_Image.get_rect()
+
+def Refresh_Button(location, end_surface):
+    Refresh_Button_Rect.topleft = (location)
+    end_surface.blit(Refresh_Image, Refresh_Button_Rect)
+    return Refresh_Button_Rect
+
+
+# Level up buttons
+Extra_HP_Image = pygame.Surface((200, 200))
+Extra_HP_Image.fill((255, 0, 0))
+rendered_text = HP_Font.render('Extra HP', True, (255,255,255))
+text_rect = rendered_text.get_rect(center = (100, 100))
+Extra_HP_Image.blit(rendered_text, text_rect)
+Extra_HP_Button_Rect = Extra_HP_Image.get_rect()
+
+def Extra_HP_Button(location, end_surface):
+    Extra_HP_Button_Rect.center = (location)
+    end_surface.blit(Extra_HP_Image, Extra_HP_Button_Rect)
+    return Extra_HP_Button_Rect
+
+Extra_Life_Image = pygame.Surface((200, 200))
+Extra_Life_Image.fill((0, 255, 0))
+rendered_text = HP_Font.render('Extra_Life', True, (255,255,255))
+text_rect = rendered_text.get_rect(center = (100, 100))
+Extra_Life_Image.blit(rendered_text, text_rect)
+Extra_Life_Button_Rect = Extra_Life_Image.get_rect()
+
+def Extra_Life_Button(location, end_surface):
+    Extra_Life_Button_Rect.center = (location)
+    end_surface.blit(Extra_Life_Image, Extra_Life_Button_Rect)
+    return Extra_Life_Button_Rect
 
 
 # Outputs a button function in the terminal to save writing it from scratch...
@@ -76,9 +115,9 @@ def create_button(text, width, height, colour):
     print(f"{rect} = {image}.get_rect()")
     print()
     print(f"def {name}(location, end_surface):")
-    print(f"    {rect}.topleft = (location)")
+    print(f"    {rect}.center = (location)")
     print(f"    end_surface.blit({image}, {rect})")
     print(f"    return {rect}")
     print("\n")
 
-create_button("Quit", 200, 100, (255, 0, 0))
+#create_button("Extra_Life", 200, 200, (0, 255, 0))

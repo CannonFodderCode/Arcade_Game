@@ -109,22 +109,26 @@ def SetUpMap(blueprint, wallcolour, floorcolour, scale, screen_size, enemy_class
     for Y_item in range(0,len(blueprint)):
         for X_item in range(0,len(blueprint[Y_item])):
             if blueprint[Y_item][X_item] == 1:
+                # place a solid block (wall) at that spot
                 block = Block((X_item*scale,Y_item*scale), wallcolour, scale)
                 surface.blit(block.image, block.rect)
                 blocks.append(block)
+
             elif blueprint[Y_item][X_item] != 1:
+                # place a ground tile at that spot, then check for enemy or player spawn point
                 block = Empty((X_item*scale,Y_item*scale), floorcolour, scale)
                 surface.blit(block.image, block.rect)
-            if blueprint[Y_item][X_item] == 2:
-                dave = random.choice(enemy_class_list)((X_item*scale,Y_item*scale), screen_size)
-                #print(f"enemy created at: {dave.rect.center}")    # debuging enemy positions
-                enemy_list.add(dave)
-            if blueprint[Y_item][X_item] == 9:
-                Xpos = (screen_size[0]//2) - (X_item * scale)
-                Ypos = (screen_size[1]//2) - (Y_item * scale)
-                #Xpos = (X_item * scale)
-                #Ypos = (Y_item * scale)
+                if blueprint[Y_item][X_item] == 2:
+                    dave = random.choice(enemy_class_list)((X_item*scale,Y_item*scale), screen_size)
+                    enemy_list.add(dave)
+
+                elif blueprint[Y_item][X_item] == 9:
+                    # sets player spawn point to that square in the grid
+                    Xpos = (screen_size[0]//2) - (X_item * scale)
+                    Ypos = (screen_size[1]//2) - (Y_item * scale)
     return surface, (Xpos, Ypos)  # returns spawn point to be used for player
+
+
 
 
 '''

@@ -116,6 +116,7 @@ validKeys = [0,1,2,   9]  # 0 = empty square, 1 = wall block, 2 = enemy spawn, 9
 
 Paint_Map(working_surface, data, (100,100,20), (0,0,0), scale)  # create the initial map from the data input
 screen = 0  # 0 = paint map   1 = view maps in data
+deleteText = font.render("Click the map you want to delete delete", True, (255,255,255))
 
 while True:
     mouse = pygame.mouse.get_pos()
@@ -189,6 +190,7 @@ while True:
         update_maps = True
         if pressed_keys[K_ESCAPE]:
             screen = 1
+
     if screen == 1:
         if update_maps:
             map_surfaces = []
@@ -205,21 +207,41 @@ while True:
                 map_surfaces.append(map_surface)
                 coordinates = (coordinates[0] + 10 + (width), coordinates[1])
                 counter += 1
-                
             update_maps = False
+
+        if pressed_keys[K_DELETE]: # sets delete mode for the below block
+            disp.fill((155,0,0))
+            disp.blit(deleteText, (100, (scr_hi - 100)))
+            deleteMode = True
+        else:
+            deleteMode = False
+
         for item in map_surfaces:
             disp.blit(item[0], item[1])
-            if item[1].collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0]:
-                screen = 0
-                working_index = item[2]
-                data = map_list[working_index]
-                Paint_Map(working_surface, data, (100,100,20), (0,0,0), scale)
-                
+            if item[1].collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0]:  # item[0] = image, 1 = rect, 2 = (index?)
+                if not deleteMode:
+                    screen = 0
+                    working_index = item[2]
+                    data = map_list[working_index]
+                    Paint_Map(working_surface, data, (100,100,20), (0,0,0), scale)
+
+                elif deleteMode:                    # Asks the user to confirm deletion in terminal before removing a map from the file
+                    print("DELETING MAP\n\n")
+                    for line in map_list[item[2]]:
+                        print(f"{line},")
+                    print(map_list[item[2]])
+                    if input("Delete the above map? y/n:\n") == "y":
+                        del map_list[item[2]]
+                        time.sleep(1)
+
+
+
+
 
     pygame.display.flip()
     for event in pygame.event.get():   # Quit detection
         if event.type == QUIT:
-            
+            print("\nQuitting\n")
             # Saves all maps to json file on quit
             final_write = []
             for item in map_list:
