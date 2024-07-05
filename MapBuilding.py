@@ -4,6 +4,7 @@ Map Building
 
 import pygame, json, random
 from pygame.locals import *
+from Classes import chest
 
 class Block(pygame.sprite.Sprite):    # a solid block with a collision rect to constrain the player
     def __init__(self, location, colour, size):
@@ -18,6 +19,28 @@ class Empty(pygame.sprite.Sprite):   # blocks to be the floor that do not get co
         self.image = pygame.Surface((size, size))
         self.image.fill(colour)
         self.rect = self.image.get_rect(topleft = location)
+
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self, location, size):
+        super().__init__()
+        self.ID = "tree"
+        self.image = pygame.Surface((size//2, 3*size//4), SRCALPHA)
+        pygame.draw.line(self.image, (60,20,0), (size//4, 3*size//4), (size//4, size//4), 5)
+        pygame.draw.circle(self.image, (0,170,0), (size//4, size//4), size//4)
+        self.HP = 5
+        self.rect = self.image.get_rect(topleft = (location[0]+(size//4), location[1]))
+    
+    def draw(self, disp, map_position, bullets_list):
+        self.draw_location = (self.rect[0] + map_position[0], self.rect[1] + map_position[1])  # turns location on map to location on screen
+        disp.blit(self.image, self.draw_location)
+        for item in bullets_list:
+            if item.allegiance == "PLAYER":
+                if item.rect.colliderect(self.rect):
+                    self.HP -= item.damage
+                    item.kill()
+                    if self.HP <= 0:
+                        self.kill()
+                        break
 
 blocks = []  # the list that will contain all solid blocks
 
@@ -102,7 +125,7 @@ with open("SavedMapData.json", "r") as file:
 
 worlddata = random.choice(mapConfigurations)
 
-def SetUpMap(blueprint, wallcolour, floorcolour, scale, screen_size, enemy_class_list, enemy_list):
+def SetUpMap(blueprint, wallcolour, floorcolour, scale, screen_size, enemy_class_list, enemy_list, obstacle_list):
     surface = pygame.Surface(((len(blueprint[0])*scale), len(blueprint)*scale))
     global blocks
     surface.fill(wallcolour)
@@ -119,13 +142,23 @@ def SetUpMap(blueprint, wallcolour, floorcolour, scale, screen_size, enemy_class
                 block = Empty((X_item*scale,Y_item*scale), floorcolour, scale)
                 surface.blit(block.image, block.rect)
                 if blueprint[Y_item][X_item] == 2:
+                    # Create Enemy at that location
                     dave = random.choice(enemy_class_list)((X_item*scale,Y_item*scale), screen_size)
                     enemy_list.add(dave)
+
+                elif blueprint[Y_item][X_item] == 8:
+                    # creates a random chest at that location
+                    new_chest = chest((X_item*scale,Y_item*scale), random.choice(("weapon", "card", "HP")))
+                    obstacle_list.add(new_chest)
 
                 elif blueprint[Y_item][X_item] == 9:
                     # sets player spawn point to that square in the grid
                     Xpos = (screen_size[0]//2) - (X_item * scale)
                     Ypos = (screen_size[1]//2) - (Y_item * scale)
+                
+                elif random.randint(0, 10) == 10:
+                    new_tree = Obstacle((X_item*scale,Y_item*scale), scale)
+                    obstacle_list.add(new_tree)
     return surface, (Xpos, Ypos)  # returns spawn point to be used for player
 
 

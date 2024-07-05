@@ -20,16 +20,26 @@ class player(pygame.sprite.Sprite):
     
     def relocate(self, map_offset):
         self.rect = self.image.get_rect(topleft = (-map_offset[0], -map_offset[1]))
+
+    def refresh(self):   # Called when the user restarts, to remove all buffs from the player
+        self.image = pygame.Surface((60,60), SRCALPHA)
+        self.image.fill((0,0,0,0))
+        pygame.draw.circle(self.image,(0,255,100), (30,30), 30)
+        self.speed = 6
+        self.maxHP = 10
+        self.HP = self.maxHP
+        self.rect_on_screen = pygame.Rect(500,500, 60,60)
+        self.BonusLives = 0
+
     
     def draw(self, disp, location):
         self.location = location
         self.rect_on_screen = pygame.Rect(location[0], location[1], 60,60)
         disp.blit(self.image, location)
 
-    def move(self, blocks, scr_wi, scr_hi, projectiles):  # currently map_offset is not used due to techincal incompetence
+    def move(self, blocks, scr_wi, scr_hi, projectiles, drops, obstacle_list, card_list, card_classes):  # currently map_offset is not used due to techincal incompetence
         
         self.debug = False  # adjust to True for colour-change on colision
-        
         self.DX = 0
         self.DY = 0
         if self.debug:
@@ -64,11 +74,38 @@ class player(pygame.sprite.Sprite):
         self.rect.centerx += self.DX  # update
         self.rect.centery += self.DY  # position
 
+        #interact with bullets
         for bullet in projectiles:
             if self.rect_on_screen.collidepoint(bullet.draw_location) and bullet.allegiance == "ENEMY":
                 self.HP -= bullet.damage
-                #print(self.HP)
                 bullet.kill()
+        
+        #interact with drops
+        for drop in drops:
+            if drop.rect_on_screen.colliderect(self.rect_on_screen):
+                if drop.ID == "HP":
+                    self.HP += drop.value
+                    if self.HP > self.maxHP:
+                        self.HP = self.maxHP
+                    drop.kill()
+        
+        #interact with chests
+        for chest in obstacle_list:
+            if chest.ID == "chest":
+                if self.rect_on_screen.colliderect(chest.rect_on_screen):
+                    print("chest detected")
+                    if chest.type == "HP":
+                        print("HP chest detected")
+                        self.maxHP += 1
+                        self.HP += 5
+                        if self.HP > self.maxHP:
+                            self.HP = self.maxHP
+                    elif chest.type == "card":
+                        new_card = random.choice(card_classes)(chest.rect)
+                        card_list.add(new_card)
+                    elif True:
+                        print("non-HP chest detected")
+                    chest.kill()
 
         return [-self.DX, -self.DY]     # return movement update to allow map to adjust
     
@@ -79,16 +116,34 @@ class weapon(pygame.sprite.Sprite):
         self.image = pygame.Surface((40, 10))   # Temporary until I can get some decent art
         self.image.fill((0,0,0))
         
+        self.stats = {
+                    "Special Capacity":2,
+                    "Capacity":3,
+                    "Damage":3,
+                    "Fire rate":2,
+                    "Speed":15,
+                    "Pierce":1,
+                    "Homing":0,
+                    "DoT":0,
+                    "Crit Chance":0,
+                    "Crit Damage":1.5,
+                    "Spread":1,
+                    "Projectiles Per Shot":1,
+                    "Short-Circuit Chance":0,
+                    "Screen Drift":10,
+                    }
+        
         self.rect = self.image.get_rect()
         self.owner = owner
-        self.speed = 15
-        self.damage = 3
-        self.FR = 2  # in shots per second
-        self.cooldown = 1/self.FR  # wait time after each shot
+        self.cooldown = 1/self.stats["Fire rate"]  # wait time after each shot
         self.timer = 0
         self.type = type
-        self.spread = 0
-        self.projectiles = 1
+        self.empty_image = pygame.Surface((100,100), SRCALPHA)
+        self.empty_image.fill((150,150,150,150))
+        self.firing_order = []
+        for count in range(self.stats["Capacity"]):
+            self.firing_order.append([self.empty_image, self.empty_image.get_rect(), None, None, False, None])
+            # Key for firing order: Image, rect, effect type, effect strength, highlighted?, Object
 
     def draw(self, disp, mouse_pos):
         if mouse_pos[0] <= self.owner.location[0]:
@@ -98,11 +153,16 @@ class weapon(pygame.sprite.Sprite):
             self.rect.center = (self.owner.rect_on_screen.center[0] + self.image.get_width()//2, self.owner.rect_on_screen.center[1])
             disp.blit(self.image, self.rect)
     
+    def update_self(self):
+        for item in self.firing_order:
+            if item[2] != None:
+                self.stats[item[2].effect_type] += item[2].effect_strength
+
     def shoot(self, projectile_group, map_pos, target):
         self.ready = ((time.time() - self.timer) > self.cooldown)
         if self.ready:
-            for count in range(self.projectiles):
-                bullet = Bullet((self.rect.center[0] - map_pos[0], self.rect.center[1] - map_pos[1]), (target[0] - map_pos[0], target[1] - map_pos[1]), "PLAYER", self.speed, self.damage)#, self.spread)
+            for count in range(self.stats["Projectiles Per Shot"]):
+                bullet = Bullet((self.rect.center[0] - map_pos[0], self.rect.center[1] - map_pos[1]), (target[0] - map_pos[0], target[1] - map_pos[1]), "PLAYER", self.stats["Speed"], self.stats["Damage"], self.stats["Spread"])
                 projectile_group.add(bullet)
                 self.timer = time.time()
 
@@ -122,7 +182,7 @@ class crossheir(pygame.sprite.Sprite):
         disp.blit(self.image, self.rect)
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, start_pos, target, allegiance, speed, damage):
+    def __init__(self, start_pos, target, allegiance, speed, damage, spread):
         super().__init__()
         self.radius = 8
         self.image = pygame.Surface((self.radius * 2, self.radius * 2), SRCALPHA)
@@ -134,7 +194,10 @@ class Bullet(pygame.sprite.Sprite):
         self.target_pos = target
         pygame.draw.circle(self.image, (255,255,0),(self.radius, self.radius), self.radius)             # FIX THE TARGET FOR PLAYER-FIRED SHOTS, ooh, maybe its because its not accounting for map drift...?
         self.rect = self.image.get_rect(center = start_pos)
-        self.angle = angle_finder(self.rect.center, target)# + radians(random.randrange(-spread, spread, 1) / 2)
+        if spread != 0:
+            self.angle = angle_finder(self.rect.center, target) + radians(random.randrange(-spread, spread, 1) / 2)
+        else:
+            self.angle = angle_finder(self.rect.center, target)
         self.dx = self.speed * cos(self.angle)
         self.dy = self.speed * sin(self.angle)
         self.X_position = self.rect.centerx
@@ -157,6 +220,10 @@ class Bullet(pygame.sprite.Sprite):
         disp.blit(self.image, self.draw_location)
         #self.target_pos_debug = ((self.target_pos[0] + map_position[0], self.target_pos[1] + map_position[1]))
         #pygame.draw.line(disp, (255,0,0), (self.draw_location[0] + 5, self.draw_location[1] + 5), self.target_pos_debug, 2)
+
+
+#|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
 
 class enemy(pygame.sprite.Sprite):
     def __init__(self, location, resolution):
@@ -260,13 +327,13 @@ class enemy(pygame.sprite.Sprite):
         if self.ready:   # done sepperatly for run speed
             self.target_pos = target.rect.centerx + (self.scrn[0]//2), target.rect.centery + (self.scrn[1]//2)
             if self.LoS(self.target_pos, obstructions_list):
-                bullet = Bullet(self.rect.center, self.target_pos, "ENEMY", self.bullet_speed, self.attack_damage)
+                bullet = Bullet(self.rect.center, self.target_pos, "ENEMY", self.bullet_speed, self.attack_damage, 5)
                 bullets_group.add(bullet)
                 #print(self.rect.center)
                 self.cooldown = random.choice(self.FR_Range)
                 self.timer = time.time()
 
-    def move(self, blocks, projectiles):
+    def move(self, blocks, projectiles, drops):
         self.debug = False  # update to enable collision check visuals, LOS drawing, and rect drawing
         if ((time.time() - self.movement_timer) > self.movement_cooldown) and not self.moving:
             self.XMovement = random.randrange(-250,250)
@@ -328,6 +395,9 @@ class enemy(pygame.sprite.Sprite):
                 #print(self.HP)
                 bullet.kill()
                 if self.HP <= 0:
+                    if random.randint(0,6) == 6:
+                        new_drop = Drop("HP", self.rect.center, self.scrn)
+                        drops.add(new_drop)
                     self.kill()
                     break # required to stop the loop removing other bullets after sprite death
     
@@ -436,7 +506,7 @@ class melee(pygame.sprite.Sprite):
                 print("Dude is stuck in a wall, its not fixed")
             self.collision = [False,False,False,False]  # resets the list for the next use
 
-    def move(self, blocks, projectiles):
+    def move(self, blocks, projectiles, drops):
         self.debug = False  # update to enable collision check visuals, LOS drawing, and rect drawing
         if ((time.time() - self.movement_timer) > self.movement_cooldown) and not self.moving:
             self.XMovement = random.randrange(-250,250)
@@ -499,6 +569,9 @@ class melee(pygame.sprite.Sprite):
                 #print(self.HP)
                 bullet.kill()
                 if self.HP <= 0:
+                    if random.randint(0,6) == 6:
+                        new_drop = Drop("HP", self.rect.center, self.scrn)
+                        drops.add(new_drop)
                     self.kill()
                     break
 
@@ -516,3 +589,52 @@ class melee(pygame.sprite.Sprite):
     def draw(self, disp, map_position, null):
         self.draw_location = (self.rect[0] + map_position[0], self.rect[1] + map_position[1])  # turns location on map to location on screen
         disp.blit(self.image, self.draw_location)
+
+
+#|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+
+class Drop(pygame.sprite.Sprite):
+    def __init__(self, type, location, resolution):
+        super().__init__()
+        self.ID = type
+        self.image = pygame.Surface((30,30),SRCALPHA)
+        if self.ID == "HP":
+            self.image.fill((255,255,255))
+            pygame.draw.line(self.image, (255,0,0), (0,15), (30,15), 7)
+            pygame.draw.line(self.image, (255,0,0), (15,0), (15,30), 7)
+        self.rect = self.image.get_rect(center = location)
+        self.resolution = resolution
+        self.rect_on_screen = self.image.get_rect()
+        self.value = 2
+
+    def draw(self, disp, map_position):
+        self.draw_location = (self.rect[0] + map_position[0], self.rect[1] + map_position[1])  # turns location on map to location on screen
+        self.rect_on_screen.topleft = self.draw_location
+        disp.blit(self.image, self.draw_location)
+
+class chest(pygame.sprite.Sprite):
+    def __init__(self, location, type):
+        super().__init__()
+        self.image = pygame.Surface((70,70), SRCALPHA)
+        self.ID = "chest"
+        self.type = type
+        if type == "weapon":
+            self.image.fill((200,50,50))
+        elif type == "card":
+            self.image.fill((200,200,100))
+        elif type == "HP":
+            self.image.fill((200,200,200))
+            pygame.draw.line(self.image, (255,0,0), (20,35), (50,35), 15)
+            pygame.draw.line(self.image, (255,0,0), (35,20), (35,50), 15)
+        self.rect = self.image.get_rect(center = location)
+        self.rect_on_screen = self.image.get_rect()
+
+    def draw(self, disp, map_position, bullets_list):
+        self.draw_location = (self.rect[0] + map_position[0], self.rect[1] + map_position[1])  # turns location on map to location on screen
+        self.rect_on_screen.topleft = self.draw_location
+        disp.blit(self.image, self.draw_location)
+
+
+#|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+

@@ -94,6 +94,9 @@ def Paint_Map(surface, blueprint, wallcolour, floorcolour, scale):   # draws a g
             elif blueprint[Y_item][X_item] == 2:
                 block = MapBuilding.Block((X_item*scale,Y_item*scale), (255,0,0), scale)
                 surface.blit(block.image, block.rect)
+            elif blueprint[Y_item][X_item] == 8:
+                block = MapBuilding.Block((X_item*scale,Y_item*scale), (0,255,255), scale)
+                surface.blit(block.image, block.rect)
             elif blueprint[Y_item][X_item] == 9:
                 block = MapBuilding.Empty((X_item*scale,Y_item*scale), (0,255,0), scale)
                 surface.blit(block.image, block.rect)
@@ -108,11 +111,15 @@ def update_square(X_item, Y_item, surface, blueprint, wallcolour, floorcolour, s
     elif blueprint[Y_item][X_item] == 2:
         block = MapBuilding.Block((X_item*scale,Y_item*scale), (255,0,0), scale)
         surface.blit(block.image, block.rect)
+    elif blueprint[Y_item][X_item] == 8:
+        block = MapBuilding.Block((X_item*scale,Y_item*scale), (0,255,255), scale)
+        surface.blit(block.image, block.rect)
+        print("set to cyan")
     elif blueprint[Y_item][X_item] == 9:
         block = MapBuilding.Empty((X_item*scale,Y_item*scale), (0,255,0), scale)
         surface.blit(block.image, block.rect)
 
-validKeys = [0,1,2,   9]  # 0 = empty square, 1 = wall block, 2 = enemy spawn, 9 = player spawn
+validKeys = [0,1,2,   8,9]  # 0 = empty square, 1 = wall block, 2 = enemy spawn, 8 = chest, 9 = player spawn
 
 Paint_Map(working_surface, data, (100,100,20), (0,0,0), scale)  # create the initial map from the data input
 screen = 0  # 0 = paint map   1 = view maps in data

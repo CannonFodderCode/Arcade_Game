@@ -1,10 +1,12 @@
-import pygame, sys
+from typing import Any
+import pygame
 from pygame.locals import *
 
 pygame.init()
 
 PlayerHP_Image = pygame.Surface((300,300), pygame.SRCALPHA)
 HP_Font = pygame.font.SysFont("Rockwell Extra Bold", 80, True)
+font = pygame.font.Font(None, 20)  # small font used in inventory descriptions
 
 # The circle in the top-left that contains the Player's HP readout
 def PlayerHP_Tab(display, player, updated, scr_wi):
@@ -24,11 +26,13 @@ def PlayerHP_Tab(display, player, updated, scr_wi):
         PlayerHP_Image.blit(HP_Text, HP_Text_rect)
         updated = False
 
+        # Scales the final image down to the size of the window
         gamescale = scr_wi / 2560
         PlayerHP_Surface = pygame.Surface((300 * gamescale, 300 * gamescale), pygame.SRCALPHA)
         pygame.transform.scale(PlayerHP_Image, (300 * gamescale, 300 * gamescale), PlayerHP_Surface)
     display.blit(PlayerHP_Surface, (0,0))
 
+# The enemy count circle in the top right
 EnemyCount_Image = pygame.Surface((300,300), pygame.SRCALPHA)
 def EnemyCount_Tab(display, enemy_list, updated, scr_wi):
     global EnemyCount_Surface
@@ -42,13 +46,14 @@ def EnemyCount_Tab(display, enemy_list, updated, scr_wi):
         EnemyCount_Image.blit(EC_Text, EC_Text_rect)
         updated = False
 
+        # Scales the final image down to the size of the window
         gamescale = scr_wi / 2560
         EnemyCount_Surface = pygame.Surface((300 * gamescale, 300 * gamescale), pygame.SRCALPHA)
         pygame.transform.scale(EnemyCount_Image, (300 * gamescale, 300 * gamescale), EnemyCount_Surface)
     display.blit(EnemyCount_Surface, (scr_wi-(EnemyCount_Surface.get_width()),0))
 
 
-# Pause Buttons
+# Buttons
 Quit_Image = pygame.Surface((200, 100))
 Quit_Image.fill((255, 0, 0))
 rendered_text = HP_Font.render('Quit', True, (255,255,255))
@@ -100,6 +105,119 @@ def Extra_Life_Button(location, end_surface):
     end_surface.blit(Extra_Life_Image, Extra_Life_Button_Rect)
     return Extra_Life_Button_Rect
 
+
+class inventory_class(pygame.sprite.Sprite):  # The class that handles storing all collected cards - opens with the tab key in game
+    def __init__(self, resolution):
+        super().__init__()
+        self.empty_image = pygame.Surface((100,100), SRCALPHA)
+        self.empty_image.fill((150,150,150,150))
+        self.resolution = resolution
+        self.coordinates = ((2* resolution[0]//3) - 325, (resolution[1]//2) - 325)
+        self.empty_message = font.render(r"Empty - This slot can hold a card", True, (255,255,255), (100,0,0,150))
+        self.items = []
+        # Creates an array on empty boxes to diplay
+        for x in range(6):
+            for y in range(6):
+                self.items.append([(self.coordinates[0] + x*110, self.coordinates[1] + y*110), None, self.empty_image])   # Location, Item_type, image, rect, is_coloured?
+        for item in self.items:
+            item.append(item[2].get_rect(topleft = item[0]))
+            item.append(False)  # check if an item has been coloured as the closest to allow for re-colouring when it isnt
+            item.append(self.empty_message)
+
+    def draw(self,disp):
+        for square in self.items:
+            disp.blit(square[2], square[3])
+    
+    #Index: 0      1         2     3         4            5
+    # Location, Item_type, image, rect, is_coloured?, description
+
+    def update(self):  # Highlights a square closest to the draged sprite, showing which box it will end up in on release
+        for item in self.items:
+            if item[1] == None:
+                if item[3].collidepoint(pygame.mouse.get_pos()):
+                    item[2] = pygame.Surface((100,100), SRCALPHA)
+                    item[2].fill((200,200,200,150))
+                    item[4] = True
+                else:
+                    # Refill with the main colour
+                    item[4] = False
+                    item[2].fill((150,150,150,150))
+    
+    def assign(self, dragged_card):
+        # Checks which slot is highlighted (touching the mouse) and if its empty, place the card in there
+        for item in self.items:
+            if item[1] == None:
+                if item[4]:  # assigned in the "update" method, claiming that its the square that should be dropped into
+                    item[1] = dragged_card.type # Assign type (will need updating)
+                    item[2].blit(dragged_card.image, (5,5))
+                    item[4] = False
+                    item[5] = dragged_card.description
+                    return True
+        print("No location was found")
+        return False  # Used to create a new card drop on the map if the card wasnt on an empty square
+
+    def reset_images(self):  # returns any highlighted squares to  normal colour - called after dragging an item
+        for item in self.items:
+            if item[4]:
+                item[2].fill((150,150,150,150))
+                item[4] = False
+
+# Stores weapons and displays their slots on the screen when playing & editing
+class weapon_slots_class(pygame.sprite.Sprite):
+    def __init__(self):
+        self.empty_image = pygame.Surface((100,100), SRCALPHA)
+        self.empty_image.fill((150,150,150,150))
+        self.slots = []
+
+        # Slot creation
+        for item in range(3):
+            self.slots.append([(10 + item*110, 10), None, None, self.empty_image])
+        for item in self.slots:
+            item.append(self.empty_image.get_rect(topleft = item[0]))
+    # Location, Object, Item_type, image, rect
+    def draw(self, disp):
+        for item in self.slots:
+            disp.blit(item[3], item[4])
+
+    # Used to draw the slots & their contents in the inventory, to allow editing of each of the slots of all weapons
+    def draw_inventory(self, disp):#, location):
+        for slot in self.slots:
+            disp.blit(slot[3], slot[4]) # Displays weapons
+            X_coord = slot[0][0]
+            Y_coord = slot[0][1] + slot[4][3] + 10 # drops down by the height of the rect + 10
+            for item in slot[1].firing_order: # slot[1] == weapon object
+                item[1].topleft = (X_coord, Y_coord)
+                disp.blit(item[0], item[1])
+                Y_coord += item[0].get_height() + 10
+                if item[1].collidepoint(pygame.mouse.get_pos()):
+                    item[4] = True
+                else:
+                    item[4] = False
+
+    def assign(self, dragged_card):
+        for slot in self.slots:
+            for weapon_slot in slot[1].firing_order:
+                if weapon_slot[4] and weapon_slot[2] == None:
+                    weapon_slot[0] = dragged_card.image
+                    weapon_slot[2] = dragged_card.effect_type
+                    weapon_slot[3] = dragged_card.effect_strength
+                    weapon_slot[5] = dragged_card.type
+                    return True
+                else: print(weapon_slot[4], weapon_slot[2])
+        print("not on a weapon")
+        return False
+
+    def set_slot(self, slot_number, item):
+        self.slots[slot_number][1] = item
+        self.slots[slot_number][2] = item.type
+        self.slots[slot_number][3] = item.image
+
+    def update_cards(self, dragged_weapon):
+        count = 0
+        for item in self.slots:
+            if item[4].collidepoint(pygame.mouse.get_pos()):
+                self.assign(count, dragged_weapon)
+            count += 1
 
 # Outputs a button function in the terminal to save writing it from scratch...
 def create_button(text, width, height, colour):

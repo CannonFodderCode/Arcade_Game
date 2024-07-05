@@ -106,3 +106,5 @@ def Config():  # the program in function form for easy calling in other programs
     print(scr_hi, scr_wi, fullscreenBOOL)
     return [scr_hi, scr_wi, fullscreenBOOL]
 #pygame.quit()
+
+Config()
