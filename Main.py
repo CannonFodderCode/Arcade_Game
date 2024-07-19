@@ -17,8 +17,11 @@ add function in mapMaker to add maps
 Add mapmaker "forest" tile (draws empty with 80% chance for tree instead of 10%)
 Add scrolling through maps in map maker: calculate the length of the list of maps, account for space in between then check that against screen size - if it will go off the screen then shift all aps to the left when the cursor is near the edge & left/right arrow key navigation
 '''
-# FIX MOVEMENT - player moves at 5/4 speed on 720, 4/4 speed at 1080, and 3/4 speed at 1440.   ----   potentially FPS based?   ----
-
+# BUGS
+'''
+FIX MOVEMENT - player moves at 5/4 speed on 720, 4/4 speed at 1080, and 3/4 speed at 1440.   ----   potentially FPS based?   ----
+Removing cards from weapons doesnt remove their effect
+'''
 # Kid's ideas I might use:
 '''
 Mythology themed
@@ -121,20 +124,24 @@ levelUpLocations = [(scr_wi//2 - 150, scr_hi//2), (scr_wi//2 + 150, scr_hi//2)]
 
 # weapon slot setup
 pistol = weapon(bob, "Pistol")  # higher speed
-pistol.stats["Speed"] = 20
+pistol.basestats["Speed"] = 20
+pistol.basestats["Pierce"] = 2
+pistol.update_stats()
 
 sMG = weapon(bob, "SMG")  # less damage, faster FR
-sMG.stats["Damage"] = 2
-sMG.stats["Fire rate"] = 5
+sMG.basestats["Damage"] = 2
+sMG.basestats["Fire rate"] = 5
 sMG.cooldown = 1/sMG.stats["Fire rate"]
-sMG.stats["Spread"] = 8
+sMG.basestats["Spread"] = 8
+sMG.update_stats()
 
 shotgun = weapon(bob, "shotgun")  # slow, but fires lots of shells
-shotgun.stats["Damage"] = 1
-shotgun.stats["Fire rate"] = 1.5
+shotgun.basestats["Damage"] = 1
+shotgun.basestats["Fire rate"] = 1.5
 shotgun.cooldown = 1/shotgun.stats["Fire rate"]
-shotgun.stats["Spread"] = 35
-shotgun.stats["Projectiles Per Shot"] = 12
+shotgun.basestats["Spread"] = 35
+shotgun.basestats["Projectiles Per Shot"] = 12
+shotgun.update_stats()
 
 displayInventory = False
 inventory = inventory_class(screensize)
@@ -171,6 +178,7 @@ if __name__ == "__main__":
         # Randomises and re-builds the map
         worlddata = random.choice(mapConfigurations)
         worlddata = mapConfigurations[3] # Debug mode full of chests
+
         area_map, map_position = SetUpMap(trim_data(worlddata), (150,120,40), (100,40,20), 80, screensize, enemy_list, enemies, obstacle_list)   # sets up the surface "area_map" with a world image from "worlddata" usign the specified colours
         bob.relocate(map_position)
         testGun = weapon(bob, None)
@@ -307,6 +315,8 @@ if __name__ == "__main__":
                 elif pressed_keys[K_TAB] and tab_registering:
                     displayInventory = not displayInventory
                     tab_registering = False
+                    for gun in weapons.slots:    
+                        gun[1].update_self()
                 
                 # Inentory Management
                 if displayInventory:
@@ -334,8 +344,10 @@ if __name__ == "__main__":
                                         dragging = True
                                         card_dragged = slot[5](pygame.mouse.get_pos())
                                         print("Dragging a card")
+                                        # Resets the card slot to empty
                                         slot[0] = pygame.Surface((100,100),SRCALPHA)
                                         slot[0].fill((150,150,150,150))
+                                        slot[2] = None
                                         slot[3] = None
                                         slot[4] = None
                                         slot[5] = None
@@ -347,11 +359,10 @@ if __name__ == "__main__":
                                     card_dragged.stored = False
                                     card_dragged.draw(disp, drifted_map_pos)
                                     cards.add(card_dragged)
-                                else:
-                                    print("Something went wrong: ", )
                             dragging = False
                         inventory.reset_images()
                         inventory.update()
+                        weapons.update()
                         card_dragged.drag(pygame.mouse.get_pos(), disp)
 
                 # Draws weapon slots if inventory is closed
@@ -422,6 +433,9 @@ if __name__ == "__main__":
                     inventory = inventory_class(screensize)
                     Playing = False
             
+            if pressed_keys[K_g]:
+                print(shotgun.firing_order)
+
             cursor.draw(disp)
 
             pygame.display.flip()

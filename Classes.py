@@ -116,7 +116,8 @@ class weapon(pygame.sprite.Sprite):
         self.image = pygame.Surface((40, 10))   # Temporary until I can get some decent art
         self.image.fill((0,0,0))
         
-        self.stats = {
+        # The stats of the original weapon, before modifications have been made
+        self.basestats = {
                     "Special Capacity":2,
                     "Capacity":3,
                     "Damage":3,
@@ -132,7 +133,7 @@ class weapon(pygame.sprite.Sprite):
                     "Short-Circuit Chance":0,
                     "Screen Drift":10,
                     }
-        
+        self.stats = self.basestats.copy()  # copy() avoids sharing memory, allowing me to update stats without changing base values
         self.rect = self.image.get_rect()
         self.owner = owner
         self.cooldown = 1/self.stats["Fire rate"]  # wait time after each shot
@@ -145,6 +146,9 @@ class weapon(pygame.sprite.Sprite):
             self.firing_order.append([self.empty_image, self.empty_image.get_rect(), None, None, False, None])
             # Key for firing order: Image, rect, effect type, effect strength, highlighted?, Object
 
+    def update_stats(self):
+        self.stats = self.basestats.copy()
+
     def draw(self, disp, mouse_pos):
         if mouse_pos[0] <= self.owner.location[0]:
             self.rect.center = (self.owner.rect_on_screen.center[0] - self.image.get_width()//2, self.owner.rect_on_screen.center[1])
@@ -154,15 +158,19 @@ class weapon(pygame.sprite.Sprite):
             disp.blit(self.image, self.rect)
     
     def update_self(self):
+        self.update_stats()
         for item in self.firing_order:
             if item[2] != None:
-                self.stats[item[2].effect_type] += item[2].effect_strength
+                self.stats[item[2]] = (self.stats[item[2]] + item[3])
+                print(self.stats[item[2]], self.stats[item[2]], item[3])
+        self.cooldown = 1/self.stats["Fire rate"]
 
     def shoot(self, projectile_group, map_pos, target):
         self.ready = ((time.time() - self.timer) > self.cooldown)
         if self.ready:
+            print(self.stats)
             for count in range(self.stats["Projectiles Per Shot"]):
-                bullet = Bullet((self.rect.center[0] - map_pos[0], self.rect.center[1] - map_pos[1]), (target[0] - map_pos[0], target[1] - map_pos[1]), "PLAYER", self.stats["Speed"], self.stats["Damage"], self.stats["Spread"])
+                bullet = Bullet((self.rect.center[0] - map_pos[0], self.rect.center[1] - map_pos[1]), (target[0] - map_pos[0], target[1] - map_pos[1]), "PLAYER", self.stats["Speed"], self.stats["Damage"], self.stats["Spread"], self.stats["Pierce"], self.stats["DoT"],self.stats["Crit Damage"], self.stats["Crit Chance"])
                 projectile_group.add(bullet)
                 self.timer = time.time()
 
@@ -182,7 +190,7 @@ class crossheir(pygame.sprite.Sprite):
         disp.blit(self.image, self.rect)
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, start_pos, target, allegiance, speed, damage, spread):
+    def __init__(self, start_pos, target, allegiance, speed, damage, spread, pierce, DoT, critDMG, critChance):
         super().__init__()
         self.radius = 8
         self.image = pygame.Surface((self.radius * 2, self.radius * 2), SRCALPHA)
@@ -190,7 +198,19 @@ class Bullet(pygame.sprite.Sprite):
         self.allegiance = allegiance  # track who the shot belongs to, used to decide if it can collide with an entity
         self.start_pos = start_pos
         self.speed = speed
-        self.damage = damage
+
+        self.critDMG = critDMG
+        self.crit_Chance = critChance
+        self.base_damage = damage
+
+        # random crits
+        if random.randint(0, 100) > self.crit_Chance:
+            self.damage = self.base_damage * self.critDMG
+        else:
+            self.damage = self.base_damage
+
+        self.pierce = pierce
+        self.DoT = DoT
         self.target_pos = target
         pygame.draw.circle(self.image, (255,255,0),(self.radius, self.radius), self.radius)             # FIX THE TARGET FOR PLAYER-FIRED SHOTS, ooh, maybe its because its not accounting for map drift...?
         self.rect = self.image.get_rect(center = start_pos)
@@ -203,7 +223,7 @@ class Bullet(pygame.sprite.Sprite):
         self.X_position = self.rect.centerx
         self.Y_position = self.rect.centery
         self.draw_location = (0,0)  # placeholder for distance checks
-        #print(self.allegiance, self.start_pos, self.target_pos)
+        print(self.damage)
 
     def update(self, blocks, map_position):
         self.draw_location = (self.rect[0] + map_position[0], self.rect[1] + map_position[1])
@@ -214,7 +234,17 @@ class Bullet(pygame.sprite.Sprite):
         for item in blocks:
             if item.rect.colliderect(self.rect):  # removes the bullet if it hits a wall
                 self.kill()
-
+    
+    def register_hit(self):
+        self.pierce -= 1
+        if self.pierce <= 0:
+            self.kill()
+            return None
+        # if its still going, update the damage to roll for crits again
+        if random.randint(0, 100) > self.crit_Chance:
+            self.damage = self.base_damage * self.critDMG
+        else:
+            self.damage = self.base_damage
 
     def draw(self, disp):
         disp.blit(self.image, self.draw_location)
@@ -327,7 +357,7 @@ class enemy(pygame.sprite.Sprite):
         if self.ready:   # done sepperatly for run speed
             self.target_pos = target.rect.centerx + (self.scrn[0]//2), target.rect.centery + (self.scrn[1]//2)
             if self.LoS(self.target_pos, obstructions_list):
-                bullet = Bullet(self.rect.center, self.target_pos, "ENEMY", self.bullet_speed, self.attack_damage, 5)
+                bullet = Bullet(self.rect.center, self.target_pos, "ENEMY", self.bullet_speed, self.attack_damage, 5, 1, 0, 0, 0)
                 bullets_group.add(bullet)
                 #print(self.rect.center)
                 self.cooldown = random.choice(self.FR_Range)
@@ -393,7 +423,7 @@ class enemy(pygame.sprite.Sprite):
             if self.rect_on_screen.collidepoint(bullet.draw_location) and bullet.allegiance == "PLAYER":
                 self.HP -= bullet.damage
                 #print(self.HP)
-                bullet.kill()
+                bullet.register_hit()
                 if self.HP <= 0:
                     if random.randint(0,6) == 6:
                         new_drop = Drop("HP", self.rect.center, self.scrn)

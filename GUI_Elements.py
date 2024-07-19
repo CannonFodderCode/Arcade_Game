@@ -189,10 +189,19 @@ class weapon_slots_class(pygame.sprite.Sprite):
                 item[1].topleft = (X_coord, Y_coord)
                 disp.blit(item[0], item[1])
                 Y_coord += item[0].get_height() + 10
-                if item[1].collidepoint(pygame.mouse.get_pos()):
-                    item[4] = True
-                else:
-                    item[4] = False
+
+    def update(self):  # Highlights a square closest to the draged sprite, showing which box it will end up in on release
+        for weapon in self.slots:
+            for item in weapon[1].firing_order:
+                if item[5] == None:
+                    if item[1].collidepoint(pygame.mouse.get_pos()):
+                        item[0] = pygame.Surface((100,100), SRCALPHA)
+                        item[0].fill((200,200,200,150))
+                        item[4] = True
+                    else:
+                        # Refill with the main colour
+                        item[4] = False
+                        item[0].fill((150,150,150,150))
 
     def assign(self, dragged_card):
         for slot in self.slots:
@@ -203,7 +212,6 @@ class weapon_slots_class(pygame.sprite.Sprite):
                     weapon_slot[3] = dragged_card.effect_strength
                     weapon_slot[5] = dragged_card.type
                     return True
-                else: print(weapon_slot[4], weapon_slot[2])
         print("not on a weapon")
         return False
 

@@ -40,13 +40,30 @@ class slotsUP(Card):
         self.rect = self.image.get_rect(center = (location[0],location[1]))
         self.rect.width = 100
         self.rect.height = 100
-        self.text = font.render("Homing", True, (255,255,255))
+        self.text = font.render("Capacity", True, (255,255,255))
         self.image.blit(self.text, (5,5))
         self.location = location
         self.rect_on_screen = self.rect
         self.effect_type = "Capacity"
         self.effect_strength = 1
         self.description = font.render(f"Increaces the weapons spell capacity by {self.effect_strength}", True, (255,255,255), (0,0,0,150))
+
+class rangeUP(Card):    # restrict to melee weapons only
+    def __init__(self, location):
+        super().__init__()
+        self.special = True
+        self.type = rangeUP
+        self.image = self.set_image((255,255,0))
+        self.rect = self.image.get_rect(center = (location[0],location[1]))
+        self.rect.width = 100
+        self.rect.height = 100
+        self.text = font.render("Range", True, (255,255,255))
+        self.image.blit(self.text, (5,5))
+        self.location = location
+        self.rect_on_screen = self.rect
+        self.effect_type = "Range"
+        self.effect_strength = 1
+        self.description = font.render(f"Increaces the weapons hit range by {self.effect_strength}", True, (255,255,255), (0,0,0,150))
 
 
 #|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -138,3 +155,5 @@ class CritChance(Card):
         self.description = font.render(f"Adds {self.effect_strength}% chance to crit for higher damage", True, (255,255,255), (0,0,0,150))
 
 CardTypes = [Homing, Poison, DamageUP, Pierce, CritChance]
+CardTypes = [Pierce] # for debugging - only [x] cards spawn
+SpecialCards = [slotsUP, rangeUP]
