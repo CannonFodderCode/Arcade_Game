@@ -1,6 +1,7 @@
 # Arcade Game
 <HTML>
   <body>
+    <h1>This project is currently on hold while I learn to use the Unity engine, as I hope to re-make it in C# with GPU rendering</h1>
   <h3>Map Making app:</h3>
 
 <p>This game currently features a partially complete MapMaker in a sepperate file that allows the user to draw their own maps, using the keys 0, 1 and 2 to place empty squares, blocks and enemies respectively, and by pressing 9, place the players spawn point. To export a map, hold space and press the blue button in the bottom right, and it will write the map data into the terminal for copying and pasting, and it will also write the map data to the JSON file, so that you can continue editing it later. Pressing esc will bring up a thumbnail of each saved map in the file, and allow the user to edit one by clicking on it to open it in the main editor.</p>
