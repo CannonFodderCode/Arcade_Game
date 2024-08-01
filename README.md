@@ -9,14 +9,7 @@
 <h3>Main program</h3>
 
 <p>The main program is far from complete, but currently draws a map image and a collision map from data in the MapBuilding file. The enemies can move and shoot at the player, provided there is a direct line of sight, and the player is within range. The screen follows the player as they move around the map, and drifts towards the players cursor to allow them to look further in whatever direction they are aiming in. in the top-right is a counter of currently alive enemies, and the top-left shows the players current HP. pressing escape will pause the game, and allow the user to quit by clicking the button or reset the game by pressing the reset button. Unpause the game by pressing escape again. Currently the player has a few basic weapons to allow testing of enemy HP mechanics, and bullet collision detection, however later on this will all be re-worked from scratch to become fully customisable</p>
-<h3>Next steps:</h3>
-<ul>
-  <li>Improve MapMaker to allow easy deletion and creation of new maps within the interface</li>
-  <li>Decide on an art style & GUI colour scheme</li>
-  <li>Add obsticals to the map that block bullets, but can be destroyed by shooting</li>
-  <li>Random enemy drops (HP)</li>
-  <li>Add different appearances for bullets that get set by __init__ args</li>
-</ul>
+
 <h4>A full list of intended additions can be found at the top of "main.py"</h4>
   </body>
 </HTML>
